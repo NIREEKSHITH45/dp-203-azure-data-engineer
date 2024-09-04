@@ -4,7 +4,7 @@
 
 Microsoft Purview enables you to catalog data assets across your data estate and track the flow of data as it is transferred from one data source to another - a key element of a comprehensive data governance solution. In this lab, you'll learn about Microsoft Purview to track assets and data lineage in an Azure Synapse Analytics workspace
 
-> **Important**: Microsoft Purview has recently implemented a change that limits each Azure tenant to only one Microsoft Purview account. Nonetheless, in this lab setup, you possess the necessary permissions to perform this action utilizing Microsoft Purview.
+> **Important**: Microsoft Purview has been updated to restrict the number of Microsoft Purview accounts available per Azure tenant. Consequently, this lab is not supported in shared tenant environments, including many hosted lab environments used in instructor-led training courses.
 
 ### Objectives
 
@@ -23,6 +23,8 @@ After completing this lab, you will be able to:
 
 In this exercise, you'll use Microsoft Purview to track assets and data lineage in an Azure Synapse Analytics workspace. You'll start by using a script to provision these resources in your Azure subscription.
 
+## Task 1.1: Provision Azure resources using cloud shell.
+
 1. In a web browser, sign into the [Azure portal](https://portal.azure.com) at `https://portal.azure.com`.
 2. Use the **[\>_]** button to the right of the search bar at the top of the page to create a new Cloud Shell in the Azure portal.
 
@@ -34,24 +36,28 @@ In this exercise, you'll use Microsoft Purview to track assets and data lineage 
 
 3. Selecting a ***PowerShell*** environment and creating storage if prompted. The cloud shell provides a command line interface in a pane at the bottom of the Azure portal, as shown here:
 
-    ![Azure portal with a cloud shell pane](./images/25-2.png)
-
-    > **Note**: If you have previously created a cloud shell that uses a *Bash* environment, use the the drop-down menu at the top left of the cloud shell pane to change it to ***PowerShell***.
-
-    ![Azure portal with a cloud shell pane](./images/25-4.png)
+    ![Azure portal with a cloud shell pane](./images/powershell.png)
 
 
-4. If You dont have precreated storage account then select advanced setting.
+4.On the **Getting Started** pop-up, select the following information:-
 
-    ![Azure portal with a cloud shell pane](./images/25-2a.png)
+   - Select **Mount storage account (1)**
+   - Storage account subscription: **Select the existing subscription (2)**
+   - Select **Apply (3)**
 
-5. Keep all settings default and give unique storage account name and in file share section write **None**.
+   ![Azure portal with a cloud shell pane](./images/gettingstarted.png)
+    
 
-    ![Azure portal with a cloud shell pane](./images/25-3.png)
+5. On the **Mount storage account** pop-up, select the following:
+
+    - **We will create a storage account for you (1)**
+    - Select **Next (2)**
+
+        ![Azure portal with a cloud shell pane](./images/mount-storageaccount.png)
 
 6. Note that you can resize the cloud shell by dragging the separator bar at the top of the pane, or by using the **&#8212;**, **&#9723;**, and **X** icons at the top right of the pane to minimize, maximize, and close the pane. For more information about using the Azure Cloud Shell, see the [Azure Cloud Shell documentation](https://docs.microsoft.com/azure/cloud-shell/overview)
 
-    ![Azure portal with a cloud shell pane](./images/25-5.png)
+    ![Azure portal with a cloud shell pane](./images/close(1).png)
 
 7. In the PowerShell pane, enter the following commands to clone this repo:
 
@@ -75,6 +81,51 @@ In this exercise, you'll use Microsoft Purview to track assets and data lineage 
 > **Note**: After running the setup script, if you are presented with errors regarding failure of lakedb resource not being deployed/available; please consider deleting the **dp-203-xxxxxx** resource group and then re-run the psscript.
 
 > **Tip**: If, after running the setup script you decide not to complete the lab, be sure to delete the **dp203-*xxxxxxx*** resource group that was created in your Azure subscription to avoid unnecessary Azure costs.
+
+## Task 1.2: Explore your Azure Synapse Analytics workspace
+
+The script has created an Azure Synapse Analytics workspace, which you can explore and manage using the Azure Synapse Studio web-based interface. The workspace includes a dedicated SQL pool, which has been paused to avoid incurring unnecessary costs. You're going to need it shortly, so now is a good time to resume it.
+
+1. In the Azure portal, on the page for your Synapse Analytics workspace, view the **Overview** tab. Then in the **Open Synapse Studio** tile, use the link to open Azure Synapse Studio in a new browser tab - signing in if prompted.
+
+   >**Tip**: Alternatively, you can open Azure Synapse Studio by browsing directly to https://web.azuresynapse.net in a new browser 
+    tab.
+
+2. On the left side of Synapse Studio, use the **&rsaquo;&rsaquo;** icon to expand the menu - this reveals the different pages within Synapse Studio.
+   
+3. On the **Manage** page, on the **SQL pools** tab, select the row for the **sql*xxxxxxx*** dedicated SQL pool and use its **&#9655;** icon to start it; confirming that you want to resume it when prompted.
+
+4. Resuming the pool can take a few minutes. You can use the **&#8635; Refresh** button to check its status periodically. The status will show as **Online** when it is ready. While you're waiting, continue the steps below to create a Lake Database - then come back to the **Manage** page to ensure the dedicated SQL pool in online.
+
+## 1.3: Create lake database
+
+Lake databases store data in a data lake on Azure Storage. You can use Parquet, Delta or CSV formats and different settings to optimize storage. Each lake database has a linked service to define the root data folder.
+Lake databases are accessible in Synapse SQL serverless SQL pool and Apache Spark, letting users separate storage from compute. The metadata of the lake database makes it easy for different engines to provide an integrated experience and use extra information (like relationships) that wasn’t supported on the data lake.
+
+1. In Azure Synapse Studio, view the **Data** page, and in the **Workspace** tab, expand **SQL database** to see the databases in your workspace. These should include the **sql*xxxxxxx*** dedicated SQL pool database you just resumed.
+2. In the **Data** pane, in the **+** menu, select **Lake database** to add a new Lake database to the workspace.
+
+    > **Note**: You will receive a prompt **Azure Synapse Database Template Terms of Use** which you should read and understand prior to clicking the **OK** button.
+
+3. In the **Properties** pane for the new Lake database (on the right), set the following properties:
+    - **Name**: lakedb
+    - **Input folder**: *Browse to **root/files/data***
+
+    >**Tip**: You may see an error when opening the **Input folder**, just double-click on the root folder and work your way down to data before clicking **OK** if that's the case.
+
+4. In the **Tables** pane on the left, in the **+ Table** menu, select ***From data lake***. Then add a new table with the following properties:
+    - ***External table name***: Products
+    - ***Linked service***: synapse*xxxxxxx*-WorkspaceDefaultStorage(datalake*xxxxxxx*)
+    - ***Input file or folder***: files/data/products.csv
+
+5. Click **Continue** and in the **New external table** pane, select the First Row option to ***infer column names*** and click **create**.
+
+6. Select **Publish** at the top of the lake database window to save the changes
+7. In the **Data** pane, expand the **Lake database** section, the expand **lakedb**, then in the **Products** table's **...** menu, select **Create SQL Script** > ***Top 100 rows***.
+8. Ensure that the **Connect to** is listed as **Built-in** and the refresh the **Use database** list and select **lakedb**.
+
+
+9. Use the **Run** button to run the query and view the data within the **Products** table.
 
 ## Task 2: Catalog Azure Synapse Analytics data assets in Microsoft Purview
 
